@@ -1,0 +1,9 @@
+import {median,aggregate} from '../js/market/candles.js';import {InplayDetector} from '../js/indicators/inplay.js';import {detachment15} from '../js/indicators/detachment.js';import {CandleStore} from '../js/market/store.js';
+let passed=0,failed=0;const lines=[];function test(name,fn){try{fn();passed++;lines.push('PASS '+name)}catch(e){failed++;lines.push('FAIL '+name+' :: '+e.message);}}function ok(x,msg='assertion'){if(!x)throw Error(msg)}
+test('median even',()=>ok(median([2,1,4,3])===2.5));
+test('aggregation aligned',()=>{const b=aggregate([{t:0,open:1,high:2,low:1,close:2,volume:1,quote:2,trades:1,takerBuyQuote:1,closed:true},{t:60000,open:2,high:3,low:2,close:3,volume:1,quote:3,trades:1,takerBuyQuote:1,closed:true}],300000);ok(b.length===1&&b[0].close===3&&b[0].quote===5)});
+test('inplay live independent',()=>{const d=new InplayDetector({minBaseline:2,minQuote:10,rvolThreshold:5});d.setBaseline([{quote:10},{quote:12}]);d.add({time:100000,quote:80});ok(d.snapshot(100000).active);ok(!d.snapshot(160001).active)});
+test('detachment persists without trades',()=>{const rows=Array.from({length:51*15},(_,i)=>({t:i*60000,close:i>=50*15?120:100,open:100,high:120,low:100,volume:0,quote:0,trades:0,takerBuyQuote:0,closed:true}));const r=detachment15(rows);ok(r.ready&&r.strong,'detachment computed independently')});
+test('no future partial kline',()=>{const st=new CandleStore();st.bootstrap([{t:0,closed:true}]);st.ingest({t:60000,closed:false});ok(st.list().length===1)});
+test('duplicate closed bars replace',()=>{const st=new CandleStore();st.bootstrap([{t:0,close:1,closed:true}]);st.ingest({t:0,close:2,closed:true});ok(st.list().length===1&&st.list()[0].close===2)});
+window.__rocketTestResults={passed,failed};document.getElementById('result').textContent=lines.join('\n')+`\n\n${passed} passed, ${failed} failed`;

@@ -1,0 +1,3 @@
+# PHASE 5 — Fast Lane / trim model
+
+For every candidate target define first-passage outcome: reached target before stop and within horizon H. Label MFE, MAE, duration, post-signal path efficiency with strictly future data only **after** generating prediction. Evaluate directional uncertainty, shelf risk, expected net payoff, costs and route-difficulty calibration. Simulated 100→200, trimmed 115→185 is an *illustration*, not a normal-law price distribution. Optimize left/right trim separately, prefer express partial target if broader corridor has a higher failure rate. Low calibrated confidence: NO_TRADE. Independently validate all candidate selection decisions.

@@ -1,0 +1,3 @@
+# PHASE 6 — scientific evaluation and release
+
+Time-based train/validation/test split, then walk-forward across symbols and periods, purged/embargoed overlapping events where needed. Record signals across full candidate universe including failed launches and NO_TRADE events to avoid survivor and selection bias. Report precision with sample counts and confidence intervals, false-positive rate, lead time, target-first hit rate, time, realized path efficiency, maximum adverse excursion, cost-adjusted expected value. Compare baselines (simple RVOL, simple MA detachment, AND-intersection, route-scored). Freeze thresholds before out-of-sample tests. Ship read-only browser app with measurable memory/network load and accessible diagnostics.

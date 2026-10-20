@@ -1,0 +1,3 @@
+# PHASE 4 — liquidity zones and target classification
+
+Historical eligible coins: extract structural candidate levels using **past-only** daily/weekly swings, ranges, and previous consolidation bounds. Each level has origin timeframe, as-of evidence, score provenance and eligibility timestamp. Rank closest fast-delivery candidates as Express vs more distant Global; do not assert guaranteed arrival. New coins or inadequate history: NO_HISTORICAL_TARGET. Label user-supplied screenshot levels as hindsight annotations unless independently available beforehand. Reference ARIA (two independent attempts), DOOD (~0.0024 vs ~0.0035), COMP (near zone vs global weekly). Tests must prove no leakage of future highs to level prediction.

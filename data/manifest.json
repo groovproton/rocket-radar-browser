@@ -1,0 +1,48 @@
+{
+  "format_version": 1,
+  "archives": [
+    {
+      "symbol": "ARIAUSDT",
+      "file": "ARIAUSDT.zip",
+      "size_bytes": 2393604,
+      "sha256": "0c1834d31197c986520f6f3b7b80878632661637d967bcf7826644ed843d3978",
+      "original_upload": "ARIAUSDT.zip"
+    },
+    {
+      "symbol": "COMPUSDT",
+      "file": "COMPUSDT.zip",
+      "size_bytes": 2716947,
+      "sha256": "aa1798e2c1bfbfadd31afe644c41fef74329724d7298bd0275343b9335312f1a",
+      "original_upload": "COMPUSDT(1).zip"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "file": "DOODUSDT.zip",
+      "size_bytes": 1167821,
+      "sha256": "a02451153fbee3698ab2b26dc140014d102149eb827c1e44152dcb781b33b2d5",
+      "original_upload": "DOODUSDT(1).zip"
+    },
+    {
+      "symbol": "JCTUSDT",
+      "file": "JCTUSDT.zip",
+      "size_bytes": 1270079,
+      "sha256": "88926d4a1d17c378b370f934985b61d05ca895dd4cb3daccf60d82733bda7a0c",
+      "original_upload": "JCTUSDT(1).zip"
+    },
+    {
+      "symbol": "METUSDT",
+      "file": "METUSDT.zip",
+      "size_bytes": 2459066,
+      "sha256": "15e265097ed98a26cd472573ea3c1229423dcdfc0b838fddbc074ba07066b726",
+      "original_upload": "METUSDT(1).zip"
+    },
+    {
+      "symbol": "SUSDT",
+      "file": "SUSDT.zip",
+      "size_bytes": 2562678,
+      "sha256": "1b942a1b6bdffef3aba67a700b0b4818b1fdbe0ad1bc9d28d2a61cdfadc84a35",
+      "original_upload": "SUSDT.zip"
+    }
+  ],
+  "notes": "Immutable original uploads; no tick-by-tick replay implied"
+}

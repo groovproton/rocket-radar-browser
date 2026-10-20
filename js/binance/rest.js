@@ -1,0 +1,2 @@
+const BASE='https://fapi.binance.com';
+export async function fetchClosed1m(symbol,limit=1000,signal){const u=new URL('/fapi/v1/klines',BASE);u.searchParams.set('symbol',symbol);u.searchParams.set('interval','1m');u.searchParams.set('limit',String(limit));const r=await fetch(u,{signal});if(!r.ok)throw new Error(`Binance REST ${r.status}`);const raw=await r.json();const {normalizeRestKline}=await import('../market/candles.js');const now=Date.now();return raw.filter(x=>Number(x[6])<now).map(normalizeRestKline);}

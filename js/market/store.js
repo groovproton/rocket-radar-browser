@@ -1,7 +1,1 @@
-export class CandleStore{
- constructor(limit=1600){this.limit=limit;this.closed=new Map();this.lastTradeId=null;this.gapSuspected=false;}
- bootstrap(rows){this.closed=new Map(rows.filter(x=>x.closed).map(c=>[c.t,c]));this.trim();}
- ingest(c){if(!c.closed)return;const previous=[...this.closed.keys()].at(-1);if(previous!=null&&c.t>previous+60000)this.gapSuspected=true;this.closed.set(c.t,c);this.closed=new Map([...this.closed].sort((a,b)=>a[0]-b[0]));this.trim();}
- trim(){while(this.closed.size>this.limit)this.closed.delete(this.closed.keys().next().value);}
- list(){return [...this.closed.values()];}
-}
+export class CandleStore{constructor(limit=1600,maxAgeMs=48*60*60*1000){this.limit=limit;this.maxAgeMs=maxAgeMs;this.closed=new Map();this.gapSuspected=false;this.drops=0;this.tickReady=false;}bootstrap(rows){this.closed=new Map(rows.filter(x=>x.closed).map(c=>[c.t,c]));this.trim();}latest(){return [...this.closed.values()].at(-1);}ingest(c){if(!c.closed)return false;const p=this.latest();if(p&&c.t>p.t+60000)this.gapSuspected=true;if(this.closed.has(c.t)&&this.closed.get(c.t).close===c.close)return false;this.closed.set(c.t,c);this.closed=new Map([...this.closed].sort((a,b)=>a[0]-b[0]));this.trim();return true;}ingestMany(rows){rows.forEach(c=>this.ingest(c));}missingBetween(from,to){const out=[];for(let t=from;t<=to;t+=60000)if(!this.closed.has(t))out.push(t);return out;}markGap(){this.gapSuspected=true;this.tickReady=false;}markFresh(){this.tickReady=true;this.gapSuspected=false;}trim(){const latest=this.latest()?.t??0;const cutoff=latest-this.maxAgeMs;for(const [t] of this.closed){if(t<cutoff||this.closed.size>this.limit){this.closed.delete(t);this.drops++;}else break;}}list(){return [...this.closed.values()];}}

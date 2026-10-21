@@ -1,9 +1,10 @@
 import {median} from '../market/candles.js';
 export class InplayDetector{
- constructor({windowMs=60000,minBaseline=20,rvolThreshold=5,minQuote=10000}={}){Object.assign(this,{windowMs,minBaseline,rvolThreshold,minQuote});this.events=[];this.baseline=null;this.dataReady=false;}
- setReady(value){this.dataReady=!!value;if(!value)this.events=[];}
+ constructor({windowMs=60000,minBaseline=20,rvolThreshold=5,minQuote=10000}={}){Object.assign(this,{windowMs,minBaseline,rvolThreshold,minQuote});this.events=[];this.baseline=null;this.dataReady=false;this.observationStartedAt=null;}
+ setReady(value){this.dataReady=!!value;if(!value){this.events=[];this.observationStartedAt=null;}}
+ beginObservation(at){this.dataReady=true;this.observationStartedAt=at;}
  setBaseline(closedMinutes){const a=closedMinutes.slice(-1440).map(c=>c.quote).filter(x=>Number.isFinite(x)&&x>=0);this.baseline=a.length>=this.minBaseline?median(a):null;}
  add(event){if(!Number.isFinite(event.quote)||!Number.isFinite(event.time))return;this.events.push(event);this.prune(event.time);}
  prune(now){while(this.events.length&&this.events[0].time<=now-this.windowMs)this.events.shift();}
- snapshot(now){this.prune(now);const quote=this.events.reduce((s,e)=>s+e.quote,0);const count=this.events.length;const rvol=this.baseline>0?quote/this.baseline:null;const windowReady=this.events.length>0&&this.events[0].time<=now-this.windowMs;return {quote,count,rvol,ready:this.dataReady&&windowReady&&rvol!==null,active:this.dataReady&&windowReady&&rvol!==null&&rvol>=this.rvolThreshold&&quote>=this.minQuote};}
+ snapshot(now){this.prune(now);const quote=this.events.reduce((s,e)=>s+e.quote,0);const count=this.events.length;const rvol=this.baseline!==null&&this.baseline>0?quote/this.baseline:null;const windowReady=this.dataReady&&this.observationStartedAt!==null&&now-this.observationStartedAt>=this.windowMs;return {quote,count,rvol,ready:windowReady&&rvol!==null,active:windowReady&&rvol!==null&&rvol>=this.rvolThreshold&&quote>=this.minQuote};}
 }

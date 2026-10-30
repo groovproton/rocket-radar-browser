@@ -4,7 +4,7 @@ Purpose: find the **beginning of rapid price detachment from MA50 on 15m**. No B
 
 ## Run
 
-From the repository root run \`python3 -m http.server 8000\`, then open \`http://localhost:8000/\` in Chromium. The HTTP server only serves local static files. No remote market API calls.
+From the repository root run `make run` (foreground, Ctrl+C to stop), then open `http://127.0.0.1:8000/` in Chromium. Or use `make start` for background mode, `make status`, `make logs` and `make stop`. Run `make help` for all commands. Override port with `make run PORT=8080`. The HTTP server only serves local static files. No remote market API calls.
 
 Select a coin, click **Загрузить ZIP**, then **Replay**. Pause, adjust speed or scrub through historical time. The yellow dots and event log mark the *first* IGNITION decision in each detected episode.
 

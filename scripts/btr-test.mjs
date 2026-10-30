@@ -3,6 +3,7 @@
 import {readFileSync} from "node:fs";
 import {inflateRawSync} from "node:zlib";
 import {detect,summarize} from "../src/signal.js";
+import {evaluate} from "../src/evaluation.js";
 const path="data/BTRUSDT/market.zip";
 function unzip(bytes){
  const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
@@ -67,12 +68,16 @@ const flags=process.argv.slice(2);
 try{
  const found=unzip(readFileSync(path));if(found.length!==1)throw Error("Expected one futures_klines_1m.csv in BTR ZIP; found "+found.length);
  const bars=csv(found[0].text);
- const signals=detect(bars),checks=validate(bars,signals),report={...summarize(bars,signals),source:found[0].name,checks};
+ const signals=detect(bars),checks=validate(bars,signals),evaluation=evaluate(bars,signals);
+ if(evaluation.events.length!==signals.filter(s=>s.event).length)throw Error("Evaluation event mismatch");
+ for(const event of evaluation.events){for(const minutes of [15,30,60]){const m=event.horizons[minutes];if(m.complete&&(!Number.isFinite(m.maxGainPct)||!Number.isFinite(m.maxDrawdownPct)||m.timeToHighMin<1||m.timeToHighMin>minutes))throw Error("Invalid forward metrics");}}
+ const report={...summarize(bars,signals),evaluation,source:found[0].name,checks:{...checks,evaluation:"PASS"}};
  if(flags.includes("--json"))console.log(JSON.stringify(report,null,2));
  else{
   console.log("BTRUSDT offline | "+bars.length+" 1m candles | "+report.events.length+" ignition events");
   console.log("First:",report.firstTime,"Last:",report.lastTime);
-  for(const e of report.events)console.log(e.time,"price",e.price,"ΔMA",e.distancePct.toFixed(2)+"%","score",e.score);
+  for(const e of evaluation.events){const fmt=m=>{const x=e.horizons[m];return x.complete?`+${x.maxGainPct.toFixed(2)}% / ${x.maxDrawdownPct.toFixed(2)}% / ${x.timeToHighMin}m`:"N/A";};console.log(e.time,"price",e.price,"ΔMA",e.distancePct.toFixed(2)+"%","15m",fmt(15),"30m",fmt(30),"60m",fmt(60));}
+  console.log("Hits (+5/+10/+20):",JSON.stringify(evaluation.aggregate));
   console.log("TEST:",Object.entries(checks).map(([k,v])=>k+"="+v).join(" "));
  }
 }catch(e){console.error("FAIL:",e.message);process.exitCode=1;}

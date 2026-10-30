@@ -1,5 +1,5 @@
 import {unzip,loadCandles,detect} from "./engine.js";
-const symbols=["AGTUSDT","AINUSDT","APRUSDT","ARIAUSDT","BEAMXUSDT","BIRBUSDT","BTRUSDT","BTWUSDT","BULLAUSDT","COMPUSDT","DOODUSDT","IDOLUSDT","IOSTUSDT","IRYSUSDT","JCTUSDT","MAGMAUSDT","MUBARAKUSDT","ORDERUSDT","SANDUSDT","SUSDT","TUSDT","USUSDT"];
+const symbols=["BTRUSDT"];
 const $=id=>document.getElementById(id);
 let bars=[],signals=[],cursor=0,playing=false,timer=null,source="";
 $("symbol").innerHTML=symbols.map(s=>'<option>'+s+'</option>').join("");

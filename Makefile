@@ -5,7 +5,7 @@ HOST ?= 127.0.0.1
 PID_FILE := .server.pid
 LOG_FILE := .server.log
 
-.PHONY: help run start stop status logs
+.PHONY: help run start stop status logs test report
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "; print "Rocket Radar — offline commands"} /^[a-zA-Z_-]+:.*## / {printf "  make %-10s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -49,3 +49,9 @@ status: ## Show server status
 
 logs: ## Show server logs (background mode)
 	@if [ -f "$(LOG_FILE)" ]; then tail -n 60 "$(LOG_FILE)"; else echo "No log file yet."; fi
+
+test: ## Run BTRUSDT offline test (Node.js CLI; no npm dependencies)
+	@node scripts/btr-test.mjs --assert
+
+report: ## Print BTRUSDT signals as JSON
+	@node scripts/btr-test.mjs --json

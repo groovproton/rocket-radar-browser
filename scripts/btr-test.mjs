@@ -24,17 +24,28 @@ function unzip(bytes){
  return files;
 }
 function csv(text){
- const lines=text.replace(/^\uFEFF/,"").trim().split(/\r?\n/);
- let start=0;
- if(!/^\d{10,13}[,\t]/.test(lines[0]))start=1;
- return lines.slice(start).map(line=>{
-  const r=line.split(",");
-  let t=Number(r[0]);if(t<1e11)t*=1000;
-  return {t,o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5]||0};
- }).filter(r=>Number.isFinite(r.t)&&r.t>1e11&&r.c>0).sort((a,b)=>a.t-b.t);
+ const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(line=>line.trim());
+ if(!lines.length)throw Error("Empty CSV");
+ const delim=lines[0].includes("\t")?"\t":",";
+ const data=lines.map(line=>line.split(delim).map(value=>value.trim().replace(/^"|"$/g,"")));
+ const headers=data[0].map(value=>value.toLowerCase().replace(/[\s_-]/g,""));
+ const col=(...names)=>headers.findIndex(header=>names.includes(header));
+ let t=col("opentime","timestamp","time","date","datetime","starttime","t");
+ let o=col("open","o"),h=col("high","h"),l=col("low","l"),c=col("close","c"),v=col("volume","vol","basevolume","v");
+ const headed=t>=0&&o>=0&&h>=0&&l>=0&&c>=0;
+ if(!headed){t=0;o=1;h=2;l=3;c=4;v=5;}
+ const bars=data.slice(headed?1:0).map(row=>{
+   const raw=row[t],n=Number(raw);
+   const timestamp=raw!==""&&Number.isFinite(n)?(n<1e11?n*1000:n):Date.parse(raw);
+   return {t:timestamp,o:Number(row[o]),h:Number(row[h]),l:Number(row[l]),c:Number(row[c]),v:Number(row[v]||0)};
+ }).filter(b=>Number.isFinite(b.t)&&b.t>1e11&&b.o>0&&b.h>0&&b.l>0&&b.c>0);
+ bars.sort((a,b)=>a.t-b.t);
+ const unique=[...new Map(bars.map(b=>[b.t,b])).values()];
+ if(unique.length<751)throw Error("Parsed "+unique.length+"/"+data.length+" candles. CSV first rows: "+lines.slice(0,2).map(x=>x.slice(0,200)).join(" | "));
+ return unique;
 }
 function validate(bars,signals){
- if(bars.length<751)throw Error("Too few BTR candles for MA50 15m");
+ if(bars.length<751)throw Error("Too few BTR candles for MA50 15m: "+bars.length);
  if(signals.length!==bars.length)throw Error("One signal per candle required");
  if(signals.some(s=>s.event&&!Number.isFinite(s.ma)))throw Error("Signal without MA");
  // Causality: full replay and prefix must have identical signal decisions.

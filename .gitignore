@@ -1,0 +1,7 @@
+.server.log
+.server.pid
+__pycache__/
+*.pyc
+.DS_Store
+outputs/
+data/replay/

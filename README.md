@@ -30,3 +30,11 @@ Only BTRUSDT. No live data, BTC, order flow, UI cross-coin ranking, price target
 ## Development note
 
 Browser and CLI parsers are distinct because of the platform ZIP APIs. The actual signal algorithm is **one module**. The CLI uses Node built-in `zlib`, the browser uses `DecompressionStream`.
+
+## Forward evaluation (BTR only)
+
+`src/evaluation.js` computes post-ignition maximum high, minimum low, and minutes to peak for **15 / 30 / 60 minutes**, plus hit flags for +5%, +10%, +20%. The entry is the signal minute **close**; the entry candle's high/low is excluded because it may precede the alert. Only future 1m candles are evaluated. Missing/incomplete horizons return `N/A`, not zero. Metrics are a look-ahead **evaluation** and must never enter `detect()`.
+
+`make test` prints the table and checks the evaluation output. `make report` includes structured `evaluation.events` and `evaluation.aggregate` JSON. The browser displays the same data with clickable signal times and the original `data/BTRUSDT/chart.png` multi-timeframe reference.
+
+**Note:** A hit is a possible excursion of price, not an executable profit; it ignores spread, slippage, fees, order fills and ordering of high/low within candles. Accuracy against the annotated chart still needs human review.

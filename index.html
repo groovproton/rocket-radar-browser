@@ -1,9 +1,42 @@
 <!doctype html>
 <html lang="ru">
-    <head>
-    <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Rocket Radar | Browser only</title>
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rocket Radar — Offline Replay</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#0d1320;color:#e9f0fb}
+*{box-sizing:border-box}body{margin:0 auto;max-width:1450px;padding:24px}h1{margin:0 0 8px;font-size:30px}p{color:#aab9d2}
+header,.controls,.stats,.layout{display:flex;gap:16px;align-items:center;flex-wrap:wrap}header{justify-content:space-between}
+.panel{border:1px solid #273951;border-radius:12px;background:#131e2e;padding:17px;margin-top:16px}
+.controls label{display:flex;gap:8px;align-items:center;color:#b8c7dc}select,button,input{background:#1b2a3f;color:#fff;border:1px solid #36516e;border-radius:8px;padding:9px}button{cursor:pointer}button:hover{background:#294563}button:disabled{opacity:.4}input[type=range]{flex:1;min-width:150px}
+.stats{justify-content:space-between}.metric{min-width:120px}.metric strong{display:block;font-size:20px}.metric small{color:#9bb0ca}
+#chart{width:100%;height:370px;display:block}#volume{width:100%;height:90px;display:block}.layout{align-items:start}.layout>.panel:first-child{flex:2;min-width:380px}.layout>.panel:last-child{flex:1;min-width:270px}
+#events{max-height:420px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:9px 5px;border-bottom:1px solid #273951}th{color:#aab9d2}td:first-child{white-space:nowrap}
+.green{color:#3fe3a5}.amber{color:#ffc26c}.gray{color:#9daec5}.blue{color:#80baff}.error{color:#ff8585}
+#status{font-size:13px}#reference{width:100%;border-radius:8px;margin-top:12px}
+</style></head>
 <body>
-    <h1>Rocket Radar | Browser only</h1>
+<header><div><h1>🚀 Rocket Radar <span class="blue">/ Offline V1</span></h1><p>Исторический replay без Binance. Сигнал вычисляется исключительно по доступным на тот момент свечам.</p></div><span id="status">Выбери монету</span></header>
+<section class="panel controls">
+<label>Монета <select id="symbol"></select></label>
+<button id="load">Загрузить ZIP</button><button id="play" disabled>▶ Replay</button><button id="reset" disabled>↺ Начало</button>
+<label>Скорость <select id="speed"><option value="1">1 свеча / тик</option><option value="5">5 свечей / тик</option><option value="20" selected>20 свечей / тик</option><option value="60">60 свечей / тик</option></select></label>
+<label style="flex:1">Позиция <input id="seek" type="range" min="0" max="100" value="0" disabled></label>
+</section>
+<section class="panel stats">
+<div class="metric"><small>Историческое время (UTC)</small><strong id="clock">—</strong></div>
+<div class="metric"><small>Цена</small><strong id="price">—</strong></div>
+<div class="metric"><small>MA50 15m (завершённые)</small><strong id="ma">—</strong></div>
+<div class="metric"><small>Отрыв от MA</small><strong id="distance">—</strong></div>
+<div class="metric"><small>Стадия</small><strong id="phase">—</strong></div>
+<div class="metric"><small>Score (эвристика)</small><strong id="score">—</strong></div>
+</section>
+<div class="layout">
+<section class="panel"><canvas id="chart" width="900" height="370"></canvas><canvas id="volume" width="900" height="90"></canvas>
+<p id="details">Начальный режим: ищем ускорение расстояния между ценой и MA50 15m, а не уже выросшие монеты.</p>
+</section>
+<section class="panel"><strong>События до текущего момента</strong><div id="events"></div>
+<details><summary>Исходный график (для проверки после replay)</summary><img id="reference" alt="Исходный скриншот монеты"></details>
+</section>
+</div>
+<script type="module" src="./src/app.js"></script>
 </body></html>

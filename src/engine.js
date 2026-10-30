@@ -80,41 +80,4 @@ export function loadCandles(files){
   const unique=new Map(chosen.rows.map(x=>[x.t,x]));
   return {rows:[...unique.values()].sort((a,b)=>a.t-b.t),source:chosen.file};
 }
-// Only 15m candles that have actually closed contribute to MA.
-export function detect(bars){
-  const result=[];const closes=[];let bucket=null,lastClose=null,rolling=0;
-  let flight=false,lastTrigger=-1,wasNear=false;
-  for(let i=0;i<bars.length;i++){
-    const b=bars[i],bkt=Math.floor(b.t/900000);
-    if(bucket!==null&&bkt!==bucket&&lastClose!==null){
-      closes.push(lastClose);rolling+=lastClose;
-      if(closes.length>50)rolling-=closes.shift();
-    }
-    bucket=bkt;lastClose=b.c;
-    const ma=closes.length===50?rolling/50:null;
-    const dist=ma===null?null:100*(b.c/ma-1);
-    const prev=result[Math.max(0,i-3)];
-    const velocity=dist!==null&&prev?.dist!==null?dist-prev.dist:0;
-    const gain=i>=3?100*(b.c/bars[i-3].c-1):0;
-    const recent=bars.slice(Math.max(0,i-20),i);
-    const avgV=recent.length?recent.reduce((a,x)=>a+x.v,0)/recent.length:0;
-    const volRatio=avgV?b.v/avgV:1;
-    if(dist!==null&&Math.abs(dist)<1.0)wasNear=true;
-    // Early acceleration; volume improves score but does not delay ignition.
-    const ignition=ma!==null&&wasNear&&dist>1.4&&velocity>0.6&&gain>0.8&&!flight;
-    if(ignition){flight=true;lastTrigger=i;wasNear=false;}
-    if(flight&&(dist===null||dist<0.6||(i-lastTrigger>180&&velocity<=0)))flight=false;
-    let phase="BASE";
-    if(ma===null)phase="WARMUP";
-    else if(ignition)phase="IGNITION";
-    else if(flight){
-      if(i-lastTrigger<=12&&velocity>0.2)phase="ACCELERATION";
-      else if(i-lastTrigger>12&&Math.abs(gain)<0.3)phase="SHELF";
-      else phase="FLIGHT";
-    }else if(dist>7)phase="LATE / WAIT";
-    // Explicitly heuristic, NOT a calibrated probability.
-    const score=ma===null?0:Math.round(Math.min(100,Math.max(0,25+dist*2+velocity*12+Math.max(0,gain)*7+Math.min(3,volRatio)*5)));
-    result.push({ma,dist,velocity,gain,volRatio,score,phase,event:ignition});
-  }
-  return result;
-}
+export {detect, summarize, CONFIG} from './signal.js';

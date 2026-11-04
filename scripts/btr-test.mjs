@@ -6,6 +6,7 @@ import {detect,summarize} from "../src/signal.js";
 import {evaluate} from "../src/evaluation.js";
 import {confirm,compareV2,V2_CONFIG} from "../src/confirmation.js";
 import {stageEvents} from "../src/stages.js";
+import {eventsBetween,alertText} from "../src/alerts.js";
 const path="data/BTRUSDT/market.zip";
 function unzip(bytes){
  const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
@@ -98,8 +99,15 @@ try{
   const fullVisible=stages.events.filter(e=>e.index<size);
   if(JSON.stringify(prefix.events)!==JSON.stringify(fullVisible))throw Error("Stage lookahead: event history differs at "+size);
  }
+ // Replay alert contract: only events crossed in forward playback; no seek or duplicate.
+ const allAlerts=stages.events;
+ const chunks=eventsBetween(allAlerts,-1,Math.floor(bars.length/2)).concat(
+   eventsBetween(allAlerts,Math.floor(bars.length/2),bars.length-1));
+ if(JSON.stringify(chunks)!==JSON.stringify(allAlerts))throw Error("Replay alert event coverage failed");
+ if(eventsBetween(allAlerts,100,100).length||eventsBetween(allAlerts,200,100).length)throw Error("Seek must not emit alerts");
+ if(allAlerts.some(e=>!["CANDIDATE","CONFIRMED","EXPIRED"].includes(e.type)||!alertText(e).body))throw Error("Invalid alert");
  const report={...summarize(bars,signals),evaluation,v2:{config:V2_CONFIG,...comparison},
-   stages,source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS",stageOrder:"PASS",stageCausality:"PASS"}};
+   stages,source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS",stageOrder:"PASS",stageCausality:"PASS",replayAlerts:"PASS"}};
  if(flags.includes("--json"))console.log(JSON.stringify(report,null,2));
  else{
   console.log("BTRUSDT offline | "+bars.length+" 1m candles | "+report.events.length+" ignition events");

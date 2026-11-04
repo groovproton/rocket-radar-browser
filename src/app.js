@@ -7,6 +7,7 @@ const symbols=["BTRUSDT"];
 const $=id=>document.getElementById(id);
 let bars=[],signals=[],evaluation=null,v2=null,comparison=null,stages=null,cursor=0,playing=false,timer=null,source="";
 let alertHistory=[];
+const toastTimers=new Map();
 $("symbol").innerHTML=symbols.map(s=>'<option>'+s+'</option>').join("");
 $("symbol").value="BTRUSDT";
 const status=(s,err=false)=>{$("status").textContent=s;$("status").className=err?"error":""};
@@ -38,9 +39,7 @@ function start(){
     const old=cursor;
     cursor=Math.min(bars.length-1,cursor+Number($("speed").value));
     render();
-    if($("alerts-enabled").checked){
-      for(const event of eventsBetween(stages.events,old,cursor))notify(event);
-    }
+    for(const event of eventsBetween(stages.events,old,cursor))notify(event);
     if(cursor===bars.length-1)stop();
   },250);
 }
@@ -156,17 +155,24 @@ function renderEvaluation(){
  el.querySelectorAll("[data-ignition]").forEach(button=>button.addEventListener("click",()=>jumpTo(Number(button.dataset.ignition))));
 }
 
+function removeToast(toast){
+  const timeout=toastTimers.get(toast);
+  if(timeout!==undefined)clearTimeout(timeout);
+  toastTimers.delete(toast);toast.remove();
+}
 function clearNotifications(){
  alertHistory=[];
  $("notification-log").textContent="Новых сообщений пока нет.";
+ $("alert-count").textContent="0";
+ for(const toast of [...toastTimers.keys()])removeToast(toast);
  $("toast-stack").replaceChildren();
 }
 $("clear-alerts").onclick=clearNotifications;
 $("system-notify").onclick=async()=>{
  const button=$("system-notify");
- if(!("Notification" in window)){button.textContent="Системные уведомления не поддерживаются";button.disabled=true;return;}
+ if(!("Notification" in window)){button.textContent="Не поддерживаются";button.disabled=true;return;}
  if(Notification.permission==="granted"){button.textContent="Системные уведомления включены";return;}
- if(Notification.permission==="denied"){button.textContent="Уведомления заблокированы в настройках браузера";return;}
+ if(Notification.permission==="denied"){button.textContent="Заблокированы в браузере";return;}
  const permission=await Notification.requestPermission();
  button.textContent=permission==="granted"?"Системные уведомления включены":"Уведомления не разрешены";
 };
@@ -175,21 +181,24 @@ function notify(event){
  alertHistory.unshift({event,msg});
  const log=$("notification-log");
  log.replaceChildren();
+ $("alert-count").textContent=String(alertHistory.length);
  for(const {event:e,msg:m} of alertHistory.slice(0,100)){
   const b=document.createElement("button");b.type="button";
-  b.textContent=m.title+" · "+m.body.replace("\n"," · ");
+  b.textContent=m.title+" · "+m.body.replace("\\n"," · ");
   b.onclick=()=>{stop();cursor=e.index;render();$("chart").scrollIntoView({behavior:"smooth",block:"center"});};
   log.append(b);
  }
+ // EXPIRED is journal-only. Muted popups never suppress the historical journal.
+ if(event.type==="EXPIRED"||!$("alerts-enabled").checked)return;
  const toast=document.createElement("div");
  toast.className="alert-toast"+(event.type==="CONFIRMED"?" confirmed":"");
  const strong=document.createElement("strong");strong.textContent=msg.title;
  const info=document.createElement("small");info.textContent=msg.body;
  toast.append(strong,info);toast.title="Нажми для просмотра момента сигнала";
- toast.onclick=()=>{stop();cursor=event.index;render();toast.remove();$("chart").scrollIntoView({behavior:"smooth",block:"center"});};
+ toast.onclick=()=>{stop();cursor=event.index;render();removeToast(toast);$("chart").scrollIntoView({behavior:"smooth",block:"center"});};
  $("toast-stack").prepend(toast);
- while($("toast-stack").children.length>4)$("toast-stack").lastChild.remove();
- // System notifications only when permission has already been granted explicitly.
+ while($("toast-stack").children.length>3)removeToast($("toast-stack").lastElementChild);
+ toastTimers.set(toast,setTimeout(()=>removeToast(toast),event.type==="CONFIRMED"?8000:5000));
  if("Notification" in window&&Notification.permission==="granted"){
   try{new Notification(msg.title,{body:msg.body,tag:"rocket-radar-"+event.index+"-"+event.type});}
   catch(error){console.warn("System notification was not shown",error);}

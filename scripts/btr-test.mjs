@@ -4,6 +4,7 @@ import {readFileSync} from "node:fs";
 import {inflateRawSync} from "node:zlib";
 import {detect,summarize} from "../src/signal.js";
 import {evaluate} from "../src/evaluation.js";
+import {confirm,compareV2,V2_CONFIG} from "../src/confirmation.js";
 const path="data/BTRUSDT/market.zip";
 function unzip(bytes){
  const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
@@ -71,13 +72,34 @@ try{
  const signals=detect(bars),checks=validate(bars,signals),evaluation=evaluate(bars,signals);
  if(evaluation.events.length!==signals.filter(s=>s.event).length)throw Error("Evaluation event mismatch");
  for(const event of evaluation.events){for(const minutes of [15,30,60]){const m=event.horizons[minutes];if(m.complete&&(!Number.isFinite(m.maxGainPct)||!Number.isFinite(m.maxDrawdownPct)||m.timeToHighMin<1||m.timeToHighMin>minutes))throw Error("Invalid forward metrics");}}
- const report={...summarize(bars,signals),evaluation,source:found[0].name,checks:{...checks,evaluation:"PASS"}};
+ const v2=confirm(bars,signals),comparison=compareV2(v2,evaluation);
+ // Regression: the original V1 event count and known BTR timestamp must remain unchanged.
+ const btrTime="2026-10-22T17:16:00.000Z";
+ if(evaluation.total!==14||!evaluation.events.some(e=>e.time===btrTime))throw Error("V1 reference regression: expected 14 candidates including BTR 17:16");
+ // Causal V2: computing with a prefix cannot change past confirmation decisions.
+ for(const size of [751,1000,Math.floor(bars.length/2),bars.length-1]){
+  const prior=confirm(bars.slice(0,size),signals.slice(0,size));
+  for(let i=0;i<size;i++){
+   if(prior[i]?.score!==v2[i]?.score||prior[i]?.confirmed!==v2[i]?.confirmed)throw Error("V2 LOOKAHEAD at "+i);
+  }
+ }
+ // A post-signal outcome is allowed for evaluation only, never for confirmation.
+ const selected=v2.find(x=>x?.time===btrTime);
+ if(!selected)throw Error("BTR V2 event missing");
+ const report={...summarize(bars,signals),evaluation,v2:{config:V2_CONFIG,...comparison},source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS"}};
  if(flags.includes("--json"))console.log(JSON.stringify(report,null,2));
  else{
   console.log("BTRUSDT offline | "+bars.length+" 1m candles | "+report.events.length+" ignition events");
   console.log("First:",report.firstTime,"Last:",report.lastTime);
   for(const e of evaluation.events){const fmt=m=>{const x=e.horizons[m];return x.complete?`+${x.maxGainPct.toFixed(2)}% / ${x.maxDrawdownPct.toFixed(2)}% / ${x.timeToHighMin}m`:"N/A";};console.log(e.time,"price",e.price,"ΔMA",e.distancePct.toFixed(2)+"%","15m",fmt(15),"30m",fmt(30),"60m",fmt(60));}
   console.log("Hits (+5/+10/+20):",JSON.stringify(evaluation.aggregate));
-  console.log("TEST:",Object.entries(checks).map(([k,v])=>k+"="+v).join(" "));
+  console.log("V2: confirmed",comparison.confirmed,"of",comparison.total,"| confirmed +5% hits",comparison.confirmedHits5,
+    "| missed +5% among candidates",comparison.unconfirmedHits5);
+  for(const e of comparison.results){
+   console.log("V2",e.time,e.status,"score",e.score,"vol5/baseline",e.volumeRatio?.toFixed(2)??"N/A",
+     "breakout60",e.breakout60,"breakout240",e.breakout240,"persist",e.persistence,"accel",e.accel,
+     "high60",e.outcome60?.complete?e.outcome60.maxGainPct.toFixed(2)+"%":"N/A");
+  }
+  console.log("TEST:",Object.entries(report.checks).map(([k,v])=>k+"="+v).join(" "));
  }
 }catch(e){console.error("FAIL:",e.message);process.exitCode=1;}

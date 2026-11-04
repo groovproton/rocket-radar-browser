@@ -66,7 +66,7 @@ function render(){
   cursor=Math.max(0,Math.min(cursor,bars.length-1));
   const b=bars[cursor],s=signals[cursor];
   $("clock").textContent=date(b.t);$("price").textContent=fmt(b.c);$("ma").textContent=fmt(s.ma);
-  $("distance").textContent=pct(s.dist);$("phase").textContent=s.phase;$("score").textContent=s.ma?String(s.score):"—";
+  $("distance").textContent=pct(s.dist);$("phase").textContent=v2[cursor]?.status??s.phase;$("score").textContent=s.ma?String(s.score):"—";
   $("seek").value=cursor;
   const start=Math.max(0,cursor-240);
   const visible=bars.slice(start,cursor+1);
@@ -74,7 +74,7 @@ function render(){
   draw($("chart"),visible.map(b=>b.c),analysis.map(s=>s.ma),analysis.flatMap((s,i)=>s.event?[i]:[]));
   draw($("volume"),visible.map(b=>b.v),[],[],true);
   const events=signals.slice(0,cursor+1).flatMap((s,i)=>s.event?[{i,s}]:[]).reverse();
-  $("events").innerHTML=events.length?'<table><thead><tr><th>UTC</th><th>Цена</th><th>Отрыв</th><th>Score</th></tr></thead><tbody>'+events.slice(0,60).map(({i,s})=>'<tr><td>'+date(bars[i].t).slice(5)+'</td><td>'+fmt(bars[i].c)+'</td><td class="green">'+pct(s.dist)+'</td><td>'+s.score+'</td></tr>').join("")+'</tbody></table>':"<p>Пока сигналов нет.</p>";
+  $("events").innerHTML=events.length?'<table><thead><tr><th>UTC</th><th>Цена</th><th>Отрыв</th><th>Score</th><th>V2</th></tr></thead><tbody>'+events.slice(0,60).map(({i,s})=>'<tr><td>'+date(bars[i].t).slice(5)+'</td><td>'+fmt(bars[i].c)+'</td><td class="green">'+pct(s.dist)+'</td><td>'+s.score+'</td></tr>').join("")+'</tbody></table>':"<p>Пока сигналов нет.</p>";
   $("details").textContent="Свеча "+(cursor+1)+"/"+bars.length+" · ΔMA за 3 свечи: "+pct(s.velocity)+" · изменение цены за 3m: "+pct(s.gain)+" · объём/средний: "+s.volRatio.toFixed(2)+"× · первых сигналов: "+events.length+" · источник: "+source;
 }
 

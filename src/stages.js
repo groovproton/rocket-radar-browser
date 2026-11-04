@@ -22,7 +22,7 @@ export function stageEvents(bars,signals,config=V2_CONFIG){
   // Only the current or subsequent completed 1m candle can confirm.
   const assessment=assessAt(bars,signals,i,config);
   if(i===pending.candidateIndex)pending.scoreAtCandidate=assessment.score;
-  if(assessment.confirmed){
+  if(i>pending.candidateIndex&&assessment.confirmed){
    pending.status="CONFIRMED";pending.confirmationIndex=i;
    pending.confirmationTime=new Date(bar.t).toISOString();pending.confirmationPrice=bar.c;
    pending.delayMinutes=(bar.t-bars[pending.candidateIndex].t)/60000;

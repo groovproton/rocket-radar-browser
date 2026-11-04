@@ -1,4 +1,4 @@
-# Rocket Radar — BTRUSDT research V1
+# Rocket Radar — BTRUSDT research V1/V2
 
 One coin, one deterministic detection engine, two execution modes.
 
@@ -38,3 +38,19 @@ Browser and CLI parsers are distinct because of the platform ZIP APIs. The actua
 `make test` prints the table and checks the evaluation output. `make report` includes structured `evaluation.events` and `evaluation.aggregate` JSON. The browser displays the same data with clickable signal times and the original `data/BTRUSDT/chart.png` multi-timeframe reference.
 
 **Note:** A hit is a possible excursion of price, not an executable profit; it ignores spread, slippage, fees, order fills and ordering of high/low within candles. Accuracy against the annotated chart still needs human review.
+
+## V2 — candidate confirmation (experimental)
+
+V1 `detect()` remains unchanged: same 14 BTR candidate timestamps. V2 runs in `src/confirmation.js`, using the **same shared code** in browser and CLI. It evaluates each candidate at its own minute-close, without looking into future candles:
+
+- Close above the previous **60m high** (+1 score)
+- Close above the previous **240m high** (+2)
+- Mean volume during **last 5m / preceding 55m**: ≥1.7× (+1), ≥3× (+2); the current minute is included only at minute close
+- Three consecutive rising closes (+1)
+- Recent 3m distance acceleration exceeds 30% of the prior 10m change (+1)
+
+The heuristic scores 0–7; `ROCKET START` requires score ≥4. Otherwise it is `CANDIDATE`; incomplete prior history is `INSUFFICIENT_DATA`. Thresholds are provisional **not optimized** to BTR. A signal cannot be confirmed earlier than the minute-close when its features exist. Trade/order-flow indicators, precise liquidity targets and senior timeframe analysis beyond rolling 1m breakout highs are not yet implemented.
+
+`make test` runs V1 regression (14 reference events, BTR October 22 17:16 UTC) and V2 prefix-causality assertions. Console output prints V1 outcomes and V2 evidence on each candidate. `make report` includes machine-readable `v2.results`, including outcome labels used **solely after the signal** for post-hoc evaluation. The browser shows the same diagnostics in the table.
+
+**Acceptance is not yet established:** we must run `make test` on the checked-in archive and see how many V2 confirmations remain, particularly BTR 17:16. We should not tune the threshold to obtain a desired outcome on a single coin; validation on untouched other datasets will follow.

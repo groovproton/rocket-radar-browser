@@ -5,6 +5,7 @@ import {inflateRawSync} from "node:zlib";
 import {detect,summarize} from "../src/signal.js";
 import {evaluate} from "../src/evaluation.js";
 import {confirm,compareV2,V2_CONFIG} from "../src/confirmation.js";
+import {stageEvents} from "../src/stages.js";
 const path="data/BTRUSDT/market.zip";
 function unzip(bytes){
  const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
@@ -86,7 +87,19 @@ try{
  // A post-signal outcome is allowed for evaluation only, never for confirmation.
  const selected=v2.find(x=>x?.time===btrTime);
  if(!selected)throw Error("BTR V2 event missing");
- const report={...summarize(bars,signals),evaluation,v2:{config:V2_CONFIG,...comparison},source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS"}};
+
+ const stages=stageEvents(bars,signals);
+ if(stages.episodes.length!==14)throw Error("Stage candidate count regression");
+ for(const e of stages.episodes){
+  if(e.status==="CONFIRMED"&&!(e.confirmationIndex>e.candidateIndex&&e.delayMinutes>0&&e.delayMinutes<=V2_CONFIG.confirmMinutes))throw Error("Invalid confirmation timeline");
+ }
+ for(const size of [751,1000,Math.floor(bars.length/2),bars.length-1]){
+  const prefix=stageEvents(bars.slice(0,size),signals.slice(0,size));
+  const fullVisible=stages.events.filter(e=>e.index<size);
+  if(JSON.stringify(prefix.events)!==JSON.stringify(fullVisible))throw Error("Stage lookahead: event history differs at "+size);
+ }
+ const report={...summarize(bars,signals),evaluation,v2:{config:V2_CONFIG,...comparison},
+   stages,source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS",stageOrder:"PASS",stageCausality:"PASS"}};
  if(flags.includes("--json"))console.log(JSON.stringify(report,null,2));
  else{
   console.log("BTRUSDT offline | "+bars.length+" 1m candles | "+report.events.length+" ignition events");
@@ -100,6 +113,11 @@ try{
      "breakout60",e.breakout60,"breakout240",e.breakout240,"persist",e.persistence,"accel",e.accel,
      "high60",e.outcome60?.complete?e.outcome60.maxGainPct.toFixed(2)+"%":"N/A");
   }
+  console.log("TWO STAGES: candidates",stages.episodes.length,
+    "confirmed",stages.episodes.filter(e=>e.status==="CONFIRMED").length,
+    "expired",stages.episodes.filter(e=>e.status==="EXPIRED").length);
+  for(const e of stages.episodes)console.log("STAGES",e.candidateTime,e.candidatePrice,"->",
+    e.confirmationTime??e.status,e.confirmationPrice??"",e.delayMinutes==null?"":e.delayMinutes+"m");
   console.log("TEST:",Object.entries(report.checks).map(([k,v])=>k+"="+v).join(" "));
  }
 }catch(e){console.error("FAIL:",e.message);process.exitCode=1;}

@@ -48,26 +48,56 @@ $("play").onclick=()=>playing?stop():start();
 $("reset").onclick=()=>{stop();cursor=Math.min(750,bars.length-1);clearNotifications();render()};
 $("seek").oninput=()=>{stop();cursor=Number($("seek").value);render()};
 $("symbol").onchange=()=>{stop();clearNotifications();bars=[];signals=[];$("play").disabled=true;$("reset").disabled=true;$("seek").disabled=true;status("Нажми «Загрузить ZIP»");};
-function draw(canvas,values,maValues,events,volume=false){
+function draw(canvas,values,maValues,markers=[],volume=false){
   const ctx=canvas.getContext("2d"),w=canvas.width,h=canvas.height;
-  ctx.clearRect(0,0,w,h);ctx.fillStyle="#101b2b";ctx.fillRect(0,0,w,h);
-  if(!values.length)return;
-  const all=volume?values:values.concat(maValues.filter(Number.isFinite));
-  const min=volume?0:Math.min(...all), max=Math.max(...all);
-  const low=volume?0:min-(max-min)*0.08,span=Math.max(1e-9,max-low+(volume?0:(max-min)*0.08));
-  const x=i=>35+i*(w-50)/Math.max(1,values.length-1);
-  const y=v=>h-18-(v-low)/span*(h-35);
-  ctx.strokeStyle="#22334a";ctx.lineWidth=1;
-  for(let i=0;i<5;i++){let yy=15+i*(h-33)/4;ctx.beginPath();ctx.moveTo(35,yy);ctx.lineTo(w-14,yy);ctx.stroke();}
-  if(volume){ctx.fillStyle="#397d91";values.forEach((v,i)=>ctx.fillRect(x(i),y(v),Math.max(1,(w-50)/values.length*.75),h-18-y(v)));}
-  else {
-    for(const [arr,color] of [[values,"#37d7b2"],[maValues,"#50a7ff"]]){
-      ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;let connected=false;
-      arr.forEach((v,i)=>{if(!Number.isFinite(v)){connected=false;return;} if(!connected){ctx.moveTo(x(i),y(v));connected=true;}else ctx.lineTo(x(i),y(v));});ctx.stroke();
-    }
-    events.forEach(i=>{ctx.fillStyle="#ffcd64";ctx.beginPath();ctx.arc(x(i),y(values[i]),5,0,Math.PI*2);ctx.fill();});
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#101b2b";ctx.fillRect(0,0,w,h);
+  const valid=values.filter(Number.isFinite);
+  if(!valid.length){
+    ctx.fillStyle="#9bb0ca";ctx.font="15px system-ui";
+    ctx.fillText("Нет данных для графика",24,38);return;
   }
+  // Only actual finite values enter the scale; near-flat ranges get a visible padding.
+  const all=volume?valid:valid.concat(maValues.filter(Number.isFinite));
+  const rawMin=volume?0:Math.min(...all),rawMax=Math.max(...all);
+  const padding=volume?0:Math.max(rawMax*0.002,(rawMax-rawMin)*0.08,1e-10);
+  const low=volume?0:rawMin-padding,high=rawMax+padding;
+  const span=Math.max(1e-12,high-low);
+  const x=i=>35+i*(w-55)/Math.max(1,values.length-1);
+  const y=v=>h-20-(v-low)/span*(h-40);
+  ctx.strokeStyle="#263b53";ctx.lineWidth=1;
+  for(let k=0;k<5;k++){
+    const yy=16+k*(h-36)/4;
+    ctx.beginPath();ctx.moveTo(35,yy);ctx.lineTo(w-15,yy);ctx.stroke();
+  }
+  if(volume){
+    const barWidth=Math.max(1,(w-55)/Math.max(1,values.length)*.8);
+    ctx.fillStyle="#397d91";
+    values.forEach((v,i)=>{if(Number.isFinite(v))ctx.fillRect(x(i),y(v),barWidth,Math.max(0,h-20-y(v)));});
+    return;
+  }
+  for(const [arr,color] of [[values,"#39d6b5"],[maValues,"#5ca8ff"]]){
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;let connected=false;
+    arr.forEach((v,i)=>{
+      if(!Number.isFinite(v)){connected=false;return;}
+      if(!connected){ctx.moveTo(x(i),y(v));connected=true;}else ctx.lineTo(x(i),y(v));
+    });
+    ctx.stroke();
+  }
+  for(const marker of markers){
+    const i=marker.position,v=values[i];
+    if(!Number.isFinite(v))continue;
+    const color=marker.type==="CONFIRMED"?"#3fe3a5":"#ffc26c";
+    ctx.fillStyle=color;ctx.strokeStyle="#101b2b";ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x(i),y(v),6,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.font="bold 11px system-ui";ctx.fillStyle=color;
+    ctx.fillText(marker.type==="CONFIRMED"?"CONFIRMED":"CANDIDATE",Math.min(w-120,x(i)+9),Math.max(16,y(v)-8));
+  }
+  ctx.fillStyle="#8fa5c0";ctx.font="12px system-ui";
+  ctx.fillText(high.toFixed(5),w-94,18);
+  ctx.fillText(low.toFixed(5),w-94,h-7);
 }
+
 function render(){
   if(!bars.length)return;
   cursor=Math.max(0,Math.min(cursor,bars.length-1));
@@ -78,7 +108,9 @@ function render(){
   const start=Math.max(0,cursor-240);
   const visible=bars.slice(start,cursor+1);
   const analysis=signals.slice(start,cursor+1);
-  draw($("chart"),visible.map(b=>b.c),analysis.map(s=>s.ma),analysis.flatMap((s,i)=>s.event?[i]:[]));
+  const marks=stages.events.filter(e=>e.index>=start&&e.index<=cursor&&e.type!=="EXPIRED")
+    .map(e=>({position:e.index-start,type:e.type}));
+  draw($("chart"),visible.map(b=>b.c),analysis.map(s=>s.ma),marks);
   draw($("volume"),visible.map(b=>b.v),[],[],true);
   const events=stages.events.filter(e=>e.index<=cursor).slice().reverse();
   $("events").innerHTML=events.length?'<table><thead><tr><th>UTC</th><th>Событие</th><th>Цена</th><th>Задержка</th></tr></thead><tbody>'+

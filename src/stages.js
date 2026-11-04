@@ -8,7 +8,10 @@ export function stageEvents(bars,signals,config=V2_CONFIG){
   const bar=bars[i];
   // Expire pending candidate before processing the next minute.
   if(pending&&bar.t>pending.deadline){
-   pending.status="EXPIRED";pending=null;
+   pending.status="EXPIRED";
+   events.push({type:"EXPIRED",index:i,time:new Date(bar.t).toISOString(),price:bar.c,
+     candidateIndex:pending.candidateIndex,delayMinutes:(bar.t-bars[pending.candidateIndex].t)/60000});
+   pending=null;
   }
   if(signals[i].event){
    if(pending)pending.status="SUPERSEDED";

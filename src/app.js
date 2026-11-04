@@ -1,8 +1,9 @@
 import {unzip,loadCandles,detect} from "./engine.js";
 import {evaluate} from "./evaluation.js";
+import {confirm,compareV2} from "./confirmation.js";
 const symbols=["BTRUSDT"];
 const $=id=>document.getElementById(id);
-let bars=[],signals=[],evaluation=null,cursor=0,playing=false,timer=null,source="";
+let bars=[],signals=[],evaluation=null,v2=null,comparison=null,cursor=0,playing=false,timer=null,source="";
 $("symbol").innerHTML=symbols.map(s=>'<option>'+s+'</option>').join("");
 $("symbol").value="BTRUSDT";
 const status=(s,err=false)=>{$("status").textContent=s;$("status").className=err?"error":""};
@@ -17,7 +18,7 @@ $("load").onclick=async()=>{
     if(!response.ok)throw Error("HTTP "+response.status+" при загрузке market.zip");
     const files=await unzip(await response.arrayBuffer());
     const loaded=loadCandles(files);bars=loaded.rows;source=loaded.source;
-    signals=detect(bars);evaluation=evaluate(bars,signals);
+    signals=detect(bars);evaluation=evaluate(bars,signals);v2=confirm(bars,signals);comparison=compareV2(v2,evaluation);
     cursor=Math.min(Math.max(0,50*15),bars.length-1);
     $("seek").max=bars.length-1;$("seek").min=0;$("seek").disabled=false;
     $("play").disabled=false;$("reset").disabled=false;
@@ -87,8 +88,13 @@ function renderEvaluation(){
  const metric=(h,field)=>h.complete?percent(h[field]):"N/A";
  const rows=evaluation.events.map((e,k)=> {
    const h15=e.horizons[15],h30=e.horizons[30],h60=e.horizons[60];
+   const check=v2[e.index];
    return '<tr><td><button type="button" data-ignition="'+e.index+'">'+date(Date.parse(e.time)).slice(5)+'</button></td>'+
      '<td>'+fmt(e.price)+'</td><td>'+pct(e.distancePct)+'</td>'+
+     '<td class="'+(check.confirmed?"green":"amber")+'">'+check.status+'</td>'+
+     '<td>'+check.score+'/7</td><td>'+(check.volumeRatio==null?"N/A":check.volumeRatio.toFixed(1)+"×")+'</td>'+
+     '<td>'+(check.breakout60?"✓":"—")+'</td><td>'+(check.breakout240?"✓":"—")+'</td>'+
+     '<td>'+(check.persistence?"✓":"—")+'</td><td>'+(check.accel?"✓":"—")+'</td>'+
      '<td>'+metric(h15,"maxGainPct")+'</td><td>'+metric(h30,"maxGainPct")+'</td><td>'+metric(h60,"maxGainPct")+'</td>'+
      '<td>'+metric(h60,"maxDrawdownPct")+'</td><td>'+(h60.complete?h60.timeToHighMin+"m":"N/A")+'</td>'+
      '<td>'+(h60.complete?["+5","+10","+20"].filter((_,i)=>[h60.hit5,h60.hit10,h60.hit20][i]).join(", ")||"—":"N/A")+'</td></tr>';
@@ -97,6 +103,7 @@ function renderEvaluation(){
  el.innerHTML='<p>Все '+evaluation.total+' сигналов BTR. Здесь показан результат ПОСЛЕ сигнала; детектор не использует эти данные.</p>'+
  '<p>Попадания за 60 минут (+5 / +10 / +20%): '+a[60].hit5+' / '+a[60].hit10+' / '+a[60].hit20+
  ' из '+a[60].n+' завершённых окон.</p>'+
- '<div style="overflow:auto"><table><thead><tr><th>IGNITION UTC</th><th>Цена</th><th>ΔMA</th><th>High 15m</th><th>High 30m</th><th>High 60m</th><th>Low 60m</th><th>До high</th><th>Пороги</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ '<p><strong>V2:</strong> '+comparison.confirmed+' подтверждений из '+comparison.total+' кандидатов; +5% за час среди подтверждённых: '+comparison.confirmedHits5+'; отклонённых успешных: '+comparison.unconfirmedHits5+'. Порог score ≥ 4/7 (экспериментальный).</p>'+ 
+ '<div style="overflow:auto"><table><thead><tr><th>IGNITION UTC</th><th>Цена</th><th>ΔMA</th><th>V2</th><th>Score</th><th>Объём 5m</th><th>High 1h</th><th>High 4h</th><th>3 свечи ↑</th><th>Ускор.</th><th>High 15m</th><th>High 30m</th><th>High 60m</th><th>Low 60m</th><th>До high</th><th>Пороги</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  el.querySelectorAll("[data-ignition]").forEach(button=>button.addEventListener("click",()=>jumpTo(Number(button.dataset.ignition))));
 }

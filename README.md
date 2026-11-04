@@ -72,3 +72,13 @@ When clicking **Replay**, crossing a new event minute shows an in-page popup and
 Use the **Включить системные уведомления** button to request browser/OS notification permission; alerts are only shown if explicitly granted. In-page popups work without notification permission. `alerts-enabled` allows silencing alerts, while **Очистить журнал** clears the current UI entries. No alerts are fired when loading archives, scrubbing the range slider, resetting or clicking historical events; only forward replay emits notifications. Advancing multiple historical minutes per timer tick still emits each crossed stage event.
 
 `make test` checks the replay event boundary contract. Native notification delivery depends on local browser and OS permissions and cannot be verified by the CLI regression.
+
+## Replay UI cleanup
+
+- Notification controls stay compact; the clickable journal starts collapsed.
+- `CANDIDATE` shows an amber toast for 5 seconds; `CONFIRMED` shows a green toast for 8 seconds; `EXPIRED` is journal-only.
+- All three event types remain in the journal. The checkbox silences popups without disabling event logging; manual seeking never creates notifications.
+- Price canvas scales only finite values, shows a fallback on missing data, and draws amber CANDIDATE / green CONFIRMED markers within the visible replay window.
+- V1 and V2 detection rules and scores are unchanged.
+
+The browser rendering and OS notification permissions still require manual verification in a real browser. `make test` remains the deterministic CLI test for the signal and stage pipeline.

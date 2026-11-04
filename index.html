@@ -22,6 +22,14 @@ header,.controls,.stats,.layout{display:flex;gap:16px;align-items:center;flex-wr
 <label>Скорость <select id="speed"><option value="1">1 свеча / тик</option><option value="5">5 свечей / тик</option><option value="20" selected>20 свечей / тик</option><option value="60">60 свечей / тик</option></select></label>
 <label style="flex:1">Позиция <input id="seek" type="range" min="0" max="100" value="0" disabled></label>
 </section>
+<section class="panel"><strong>Уведомления Replay</strong>
+<label style="margin-left:15px"><input type="checkbox" id="alerts-enabled" checked> Показывать сообщения в браузере</label>
+<button type="button" id="system-notify">Включить системные уведомления</button>
+<button type="button" id="clear-alerts">Очистить журнал</button>
+<p style="font-size:12px">Уведомления возникают только при воспроизведении истории вперёд, не при перемотке и загрузке ZIP. Даты сообщений — исторические (UTC).</p>
+<div id="notification-log" aria-live="polite">Новых сообщений пока нет.</div>
+</section>
+<div id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 <section class="panel stats">
 <div class="metric"><small>Историческое время (UTC)</small><strong id="clock">—</strong></div>
 <div class="metric"><small>Цена</small><strong id="price">—</strong></div>

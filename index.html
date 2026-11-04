@@ -9,7 +9,7 @@ header,.controls,.stats,.layout{display:flex;gap:16px;align-items:center;flex-wr
 .panel{border:1px solid #273951;border-radius:12px;background:#131e2e;padding:17px;margin-top:16px}
 .controls label{display:flex;gap:8px;align-items:center;color:#b8c7dc}select,button,input{background:#1b2a3f;color:#fff;border:1px solid #36516e;border-radius:8px;padding:9px}button{cursor:pointer}button:hover{background:#294563}button:disabled{opacity:.4}input[type=range]{flex:1;min-width:150px}
 .stats{justify-content:space-between}.metric{min-width:120px}.metric strong{display:block;font-size:20px}.metric small{color:#9bb0ca}
-#chart{width:100%;height:370px;display:block}#volume{width:100%;height:90px;display:block}.layout{align-items:start}.layout>.panel:first-child{flex:2;min-width:380px}.layout>.panel:last-child{flex:1;min-width:270px}
+#chart{width:100%;height:370px;display:block;background:#101b2b}#volume{width:100%;height:90px;display:block;background:#101b2b}.layout{align-items:start}.layout>.panel:first-child{flex:2;min-width:380px}.layout>.panel:last-child{flex:1;min-width:270px}
 #events{max-height:420px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:9px 5px;border-bottom:1px solid #273951}th{color:#aab9d2}td:first-child{white-space:nowrap}
 .green{color:#3fe3a5}.amber{color:#ffc26c}.gray{color:#9daec5}.blue{color:#80baff}.error{color:#ff8585}
 #status{font-size:13px}#reference{width:100%;border-radius:8px;margin-top:12px}
@@ -22,12 +22,14 @@ header,.controls,.stats,.layout{display:flex;gap:16px;align-items:center;flex-wr
 <label>Скорость <select id="speed"><option value="1">1 свеча / тик</option><option value="5">5 свечей / тик</option><option value="20" selected>20 свечей / тик</option><option value="60">60 свечей / тик</option></select></label>
 <label style="flex:1">Позиция <input id="seek" type="range" min="0" max="100" value="0" disabled></label>
 </section>
-<section class="panel"><strong>Уведомления Replay</strong>
-<label style="margin-left:15px"><input type="checkbox" id="alerts-enabled" checked> Показывать сообщения в браузере</label>
-<button type="button" id="system-notify">Включить системные уведомления</button>
-<button type="button" id="clear-alerts">Очистить журнал</button>
-<p style="font-size:12px">Уведомления возникают только при воспроизведении истории вперёд, не при перемотке и загрузке ZIP. Даты сообщений — исторические (UTC).</p>
-<div id="notification-log" aria-live="polite">Новых сообщений пока нет.</div>
+<section class="panel" id="alerts-panel">
+<div class="notification-toolbar"><strong>Уведомления Replay</strong>
+<label><input type="checkbox" id="alerts-enabled" checked> Всплывающие сообщения</label>
+<button type="button" id="system-notify">Системные уведомления</button>
+<button type="button" id="clear-alerts">Очистить</button>
+</div>
+<details id="notification-details"><summary>Журнал уведомлений (<span id="alert-count">0</span>)</summary>
+<div id="notification-log">Новых сообщений пока нет.</div></details>
 </section>
 <div id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 <section class="panel stats">

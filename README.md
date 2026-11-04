@@ -54,3 +54,13 @@ The heuristic scores 0–7; `ROCKET START` requires score ≥4. Otherwise it is 
 `make test` runs V1 regression (14 reference events, BTR October 22 17:16 UTC) and V2 prefix-causality assertions. Console output prints V1 outcomes and V2 evidence on each candidate. `make report` includes machine-readable `v2.results`, including outcome labels used **solely after the signal** for post-hoc evaluation. The browser shows the same diagnostics in the table.
 
 **Acceptance is not yet established:** we must run `make test` on the checked-in archive and see how many V2 confirmations remain, particularly BTR 17:16. We should not tune the threshold to obtain a desired outcome on a single coin; validation on untouched other datasets will follow.
+
+## Two-stage lifecycle (current experiment)
+
+1. `CANDIDATE` is emitted by the unchanged V1 detector at its original minute-close timestamp and price.
+2. A **pending** candidate is assessed on following completed 1m candles; `CONFIRMED` is a distinct event with its own price, UTC timestamp, score and delay. It may occur 1–10 minutes after the candidate. Confirmation on the identical minute is intentionally prohibited.
+3. If no confirmation appears in 10 minutes the candidate status becomes `EXPIRED`. This does not remove the original candidate from history. A new candidate supersedes a still-pending older one.
+
+The shared state machine is `src/stages.js`, imported by browser and CLI. `make test` verifies stage order, maximum confirmation delay and event-history causality. `make report` includes `stages.episodes` and `stages.events`. The browser shows separate candidate and confirmation timestamps/prices.
+
+**No V1 changes.** The earlier V2-at-candidate diagnostics remain available for historical comparison. Current confirm policy is experimental and may still accept weak impulses. We have not yet measured the detection-quality impact of delayed entry.

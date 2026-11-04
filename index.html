@@ -13,6 +13,16 @@ header,.controls,.stats,.layout{display:flex;gap:16px;align-items:center;flex-wr
 #events{max-height:420px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:9px 5px;border-bottom:1px solid #273951}th{color:#aab9d2}td:first-child{white-space:nowrap}
 .green{color:#3fe3a5}.amber{color:#ffc26c}.gray{color:#9daec5}.blue{color:#80baff}.error{color:#ff8585}
 #status{font-size:13px}#reference{width:100%;border-radius:8px;margin-top:12px}
+#alerts-panel{padding:12px 17px}
+.notification-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.notification-toolbar label{font-size:13px;color:#b8c7dc}
+#notification-details{margin-top:10px}
+#notification-details summary{color:#aab9d2;cursor:pointer;font-size:13px}
+#notification-log{margin-top:10px;display:flex;flex-direction:column;align-items:start;gap:5px;max-height:260px;overflow:auto}
+#notification-log button{max-width:100%;text-align:left;white-space:normal;font-size:12px;padding:7px 9px}
+#toast-stack{position:fixed;right:18px;top:16px;z-index:1000;display:grid;gap:9px;max-width:min(390px,calc(100vw - 36px));pointer-events:none}
+.alert-toast{pointer-events:auto;background:#182537;border:1px solid #ffc26c;border-left:5px solid #ffc26c;border-radius:9px;padding:11px 14px;box-shadow:0 10px 34px #000a;white-space:pre-line;cursor:pointer;font-size:13px}
+.alert-toast.confirmed{border-color:#3fe3a5}.alert-toast strong{display:block;margin-bottom:5px}.alert-toast small{color:#b9c9dc}
 </style></head>
 <body>
 <header><div><h1>🚀 Rocket Radar <span class="blue">/ Offline V2 · BTRUSDT</span></h1><p>Исторический replay без Binance. Сигнал вычисляется исключительно по доступным на тот момент свечам.</p></div><span id="status">Выбери монету</span></header>

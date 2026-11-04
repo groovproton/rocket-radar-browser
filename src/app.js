@@ -88,6 +88,7 @@ function renderEvaluation(){
  const el=$("evaluation");if(!el||!evaluation)return;
  const percent=x=>x===null?"N/A":pct(x);
  const metric=(h,field)=>h.complete?percent(h[field]):"N/A";
+ const byCandidate=new Map(stages.episodes.map(e=>[e.candidateIndex,e]));
  const rows=evaluation.events.map((e,k)=> {
    const h15=e.horizons[15],h30=e.horizons[30],h60=e.horizons[60];
    const check=v2[e.index];
@@ -111,8 +112,8 @@ function renderEvaluation(){
  el.innerHTML='<p>Все '+evaluation.total+' сигналов BTR. Здесь показан результат ПОСЛЕ сигнала; детектор не использует эти данные.</p>'+
  '<p>Попадания за 60 минут (+5 / +10 / +20%): '+a[60].hit5+' / '+a[60].hit10+' / '+a[60].hit20+
  ' из '+a[60].n+' завершённых окон.</p>'+
- '<p><strong>Два этапа:</strong> '+confirmedCount+' подтверждений после CANDIDATE (окно 10 минут). Момент подтверждения отличается от времени кандидата.</p>'+ 
- '<p><strong>V2 на минуте кандидата (диагностика):</strong> '+comparison.confirmed' подтверждений из '+comparison.total+' кандидатов; +5% за час среди подтверждённых: '+comparison.confirmedHits5+'; отклонённых успешных: '+comparison.unconfirmedHits5+'. Порог score ≥ 4/7 (экспериментальный).</p>'+ 
+ '<p><strong>Два этапа:</strong> '+confirmedCount+' подтверждений после CANDIDATE (окно 10 минут). Момент подтверждения записывается отдельно от времени кандидата.</p>'+ 
+ '<p><strong>V2 на минуте кандидата (диагностика):</strong> '+comparison.confirmed+' подтверждений из '+comparison.total+' кандидатов; +5% за час среди подтверждённых: '+comparison.confirmedHits5+'; отклонённых успешных: '+comparison.unconfirmedHits5+'. Порог score ≥ 4/7 (экспериментальный).</p>'+ 
  '<div style="overflow:auto"><table><thead><tr><th>IGNITION UTC</th><th>Цена</th><th>ΔMA</th><th>Этап 2</th><th>Время подтверждения</th><th>Цена подтверждения</th><th>Задержка</th><th>V2 в момент кандидата</th><th>Score</th><th>Объём 5m</th><th>High 1h</th><th>High 4h</th><th>3 свечи ↑</th><th>Ускор.</th><th>High 15m</th><th>High 30m</th><th>High 60m</th><th>Low 60m</th><th>До high</th><th>Пороги</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  el.querySelectorAll("[data-ignition]").forEach(button=>button.addEventListener("click",()=>jumpTo(Number(button.dataset.ignition))));
 }

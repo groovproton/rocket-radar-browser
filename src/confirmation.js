@@ -2,12 +2,11 @@
 // No future data, no optimising against post-signal price movement.
 // V1 detect() remains the source of candidate events.
 export const V2_CONFIG=Object.freeze({
-  minScore:4, baselineMinutes:60, shortMinutes:5, breakoutMinutes:60, majorMinutes:240
+  minScore:4, baselineMinutes:60, shortMinutes:5, breakoutMinutes:60, majorMinutes:240, confirmMinutes:10
 });
-export function confirm(bars,signals,config=V2_CONFIG){
- if(bars.length!==signals.length)throw Error("Bars/signals length mismatch");
- return signals.map((signal,i)=>{
-  if(!signal.event)return null;
+export function assessAt(bars,signals,i,config=V2_CONFIG){
+  const signal=signals[i];
+  if(!signal)throw Error("Missing signal at "+i);
   const b=bars[i],history=bars.slice(Math.max(0,i-config.majorMinutes),i);
   // Require the complete prior hour; missing history cannot validate a breakout.
   const prior60=bars.slice(Math.max(0,i-config.breakoutMinutes),i);
@@ -36,7 +35,10 @@ export function confirm(bars,signals,config=V2_CONFIG){
   return {index:i,time:new Date(b.t).toISOString(),price:b.c,ready,confirmed,
     status:!ready?"INSUFFICIENT_DATA":confirmed?"ROCKET START":"CANDIDATE",
     score,volumeRatio,breakout60,breakout240,persistence,accel};
- });
+}
+export function confirm(bars,signals,config=V2_CONFIG){
+ if(bars.length!==signals.length)throw Error("Bars/signals length mismatch");
+ return signals.map((signal,i)=>signal.event?assessAt(bars,signals,i,config):null);
 }
 export function compareV2(v2,evaluation){
  const byIndex=new Map(evaluation.events.map(e=>[e.index,e]));

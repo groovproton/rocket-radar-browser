@@ -64,3 +64,11 @@ The heuristic scores 0–7; `ROCKET START` requires score ≥4. Otherwise it is 
 The shared state machine is `src/stages.js`, imported by browser and CLI. `make test` verifies stage order, maximum confirmation delay and event-history causality. `make report` includes `stages.episodes` and `stages.events`. The browser shows separate candidate and confirmation timestamps/prices.
 
 **No V1 changes.** The earlier V2-at-candidate diagnostics remain available for historical comparison. Current confirm policy is experimental and may still accept weak impulses. We have not yet measured the detection-quality impact of delayed entry.
+
+## Replay browser notifications
+
+When clicking **Replay**, crossing a new event minute shows an in-page popup and a clickable entry in the notification journal. Supported historical events: `CANDIDATE`, `CONFIRMED`, and `EXPIRED` after the confirmation window elapses. Historical timestamps (UTC) and price are displayed, and clicking a notification jumps to its corresponding historical candle.
+
+Use the **Включить системные уведомления** button to request browser/OS notification permission; alerts are only shown if explicitly granted. In-page popups work without notification permission. `alerts-enabled` allows silencing alerts, while **Очистить журнал** clears the current UI entries. No alerts are fired when loading archives, scrubbing the range slider, resetting or clicking historical events; only forward replay emits notifications. Advancing multiple historical minutes per timer tick still emits each crossed stage event.
+
+`make test` checks the replay event boundary contract. Native notification delivery depends on local browser and OS permissions and cannot be verified by the CLI regression.

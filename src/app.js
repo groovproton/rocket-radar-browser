@@ -191,9 +191,9 @@ function notify(event){
   log.append(b);
  }
  // EXPIRED is journal-only. Muted popups never suppress the historical journal.
- if(event.type==="EXPIRED"||!$("alerts-enabled").checked)return;
+ if(event.type==="EXPIRED"||(event.type==="FOLLOW"&&event.label==="SHELF")||!$("alerts-enabled").checked)return;
  const toast=document.createElement("div");
- toast.className="alert-toast"+(event.type==="CONFIRMED"?" confirmed":"");
+ toast.className="alert-toast"+(event.type==="CONFIRMED"||(event.type==="FOLLOW"&&event.label==="FLIGHT")?" confirmed":"");
  const strong=document.createElement("strong");strong.textContent=msg.title;
  const info=document.createElement("small");info.textContent=msg.body;
  toast.append(strong,info);toast.title="Нажми для просмотра момента сигнала";

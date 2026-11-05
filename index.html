@@ -50,6 +50,17 @@ header,.controls,.stats,.layout{display:flex;gap:16px;align-items:center;flex-wr
 <div class="metric"><small>Стадия</small><strong id="phase">—</strong></div>
 <div class="metric"><small>Score (эвристика)</small><strong id="score">—</strong></div>
 </section>
+<section class="panel">
+<strong>Сопровождение после CONFIRMED · диагностика, не торговый сигнал</strong>
+<div class="stats" style="margin-top:12px">
+<div class="metric"><small>Режим</small><strong id="follow-status">—</strong></div>
+<div class="metric"><small>Efficiency (5m)</small><strong id="follow-efficiency">—</strong></div>
+<div class="metric"><small>Retention</small><strong id="follow-retention">—</strong></div>
+<div class="metric"><small>Δ отрыва MA (3m)</small><strong id="follow-separation">—</strong></div>
+<div class="metric"><small>От CONFIRMED</small><strong id="follow-change">—</strong></div>
+<div class="metric"><small>Прошло</small><strong id="follow-elapsed">—</strong></div>
+</div><p style="font-size:12px">FLIGHT — направленное движение; SHELF — консолидация; WEAKENING — потеря импульса. Наблюдение в течение 60 минут после подтверждения.</p>
+</section>
 <div class="layout">
 <section class="panel"><canvas id="chart" width="900" height="370"></canvas><canvas id="volume" width="900" height="90"></canvas>
 <p id="details">Начальный режим: ищем ускорение расстояния между ценой и MA50 15m, а не уже выросшие монеты.</p>

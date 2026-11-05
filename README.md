@@ -82,3 +82,18 @@ Use the **Включить системные уведомления** button to
 - V1 and V2 detection rules and scores are unchanged.
 
 The browser rendering and OS notification permissions still require manual verification in a real browser. `make test` remains the deterministic CLI test for the signal and stage pipeline.
+
+## Post-confirmation monitoring — diagnostic only
+
+`src/follow.js` tracks the first **60 minutes after each CONFIRMED** with shared code in CLI and browser. It **does not modify** `src/signal.js`, `src/confirmation.js`, `src/stages.js`, candidate sensitivity, or confirmation scoring.
+
+Indicators computed from historical observations available **at each replay minute**:
+
+- **Efficiency (last 5 minutes)**: net close-to-close displacement divided by total absolute close-to-close path, ranging from -1 (fully down) to +1 (fully up). Flat periods report N/A.
+- **Retention**: current gain from confirmation divided by the greatest positive close gain seen *so far* since confirmation, clamped to [0,1]. If no positive peak exists yet, N/A. This is NOT an eventual-future high.
+- **MA separation speed**: change in percent distance of price from closed-candle MA50 15m over the last 3 minutes (percentage points / 3m).
+- Also displays current percent gain from confirmation and elapsed minutes.
+
+Experimental descriptive states: `FLIGHT` (positive efficiency and retention with increasing separation), `SHELF` (weak displacement and near-flat separation), `WEAKENING` (poor retention or negative efficiency and shrinking separation), or `OBSERVING`. A state needs **3 consecutive minutes** before a `FOLLOW` journal event is emitted; 5 minutes minimum between messages. Shelf is journal-only; FLIGHT and WEAKENING may show short popups. These are descriptions **not forecasts or trading signals**.
+
+`make test` checks causal prefix equivalence and numerical bounds for these metrics. `make report` includes `follow.events` for CLI automation. No Binance, npm dependencies or new coin datasets.

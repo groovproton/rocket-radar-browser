@@ -7,6 +7,7 @@ import {evaluate} from "../src/evaluation.js";
 import {confirm,compareV2,V2_CONFIG} from "../src/confirmation.js";
 import {stageEvents} from "../src/stages.js";
 import {eventsBetween,alertText} from "../src/alerts.js";
+import {followConfirmed} from "../src/follow.js";
 const path="data/BTRUSDT/market.zip";
 function unzip(bytes){
  const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
@@ -100,14 +101,30 @@ try{
   if(JSON.stringify(prefix.events)!==JSON.stringify(fullVisible))throw Error("Stage lookahead: event history differs at "+size);
  }
  // Replay alert contract: only events crossed in forward playback; no seek or duplicate.
- const allAlerts=stages.events;
+ const follow=followConfirmed(bars,signals,stages);
+ // Causal prefix validation and invariant checking for follow-up measurements.
+ for(const size of [751,1000,Math.floor(bars.length/2),bars.length-1]){
+  const truncated=followConfirmed(bars.slice(0,size),signals.slice(0,size),
+    stageEvents(bars.slice(0,size),signals.slice(0,size)));
+  for(let i=0;i<size;i++){
+   const a=truncated.points[i],b=follow.points[i];
+   if(a?.label!==b?.label||a?.efficiency!==b?.efficiency||a?.retention!==b?.retention||
+     a?.maSpeed!==b?.maSpeed)throw Error("FOLLOW LOOKAHEAD at "+i);
+  }
+  if(JSON.stringify(truncated.events)!==JSON.stringify(follow.events.filter(e=>e.index<size)))
+    throw Error("FOLLOW event lookahead at "+size);
+ }
+ if(follow.points.some(p=>p&&(p.efficiency!==null&&(!Number.isFinite(p.efficiency)||Math.abs(p.efficiency)>1.00000001)||
+    p.retention!==null&&(!Number.isFinite(p.retention)||p.retention<0||p.retention>1))))
+   throw Error("Follow metric bounds failed");
+ const allAlerts=[...stages.events,...follow.events].sort((a,b)=>a.index-b.index);
  const chunks=eventsBetween(allAlerts,-1,Math.floor(bars.length/2)).concat(
    eventsBetween(allAlerts,Math.floor(bars.length/2),bars.length-1));
  if(JSON.stringify(chunks)!==JSON.stringify(allAlerts))throw Error("Replay alert event coverage failed");
  if(eventsBetween(allAlerts,100,100).length||eventsBetween(allAlerts,200,100).length)throw Error("Seek must not emit alerts");
- if(allAlerts.some(e=>!["CANDIDATE","CONFIRMED","EXPIRED"].includes(e.type)||!alertText(e).body))throw Error("Invalid alert");
+ if(allAlerts.some(e=>!["CANDIDATE","CONFIRMED","EXPIRED","FOLLOW"].includes(e.type)||!alertText(e).body))throw Error("Invalid alert");
  const report={...summarize(bars,signals),evaluation,v2:{config:V2_CONFIG,...comparison},
-   stages,source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS",stageOrder:"PASS",stageCausality:"PASS",replayAlerts:"PASS"}};
+   stages,follow:{events:follow.events},source:found[0].name,checks:{...checks,evaluation:"PASS",v2Causality:"PASS",v1Regression:"PASS",stageOrder:"PASS",stageCausality:"PASS",replayAlerts:"PASS",followCausality:"PASS"}};
  if(flags.includes("--json"))console.log(JSON.stringify(report,null,2));
  else{
   console.log("BTRUSDT offline | "+bars.length+" 1m candles | "+report.events.length+" ignition events");
@@ -121,6 +138,8 @@ try{
      "breakout60",e.breakout60,"breakout240",e.breakout240,"persist",e.persistence,"accel",e.accel,
      "high60",e.outcome60?.complete?e.outcome60.maxGainPct.toFixed(2)+"%":"N/A");
   }
+  console.log("FOLLOW: ",follow.events.length,"regime transitions",
+    follow.events.map(e=>e.label+" "+e.time).join(" | "));
   console.log("TWO STAGES: candidates",stages.episodes.length,
     "confirmed",stages.episodes.filter(e=>e.status==="CONFIRMED").length,
     "expired",stages.episodes.filter(e=>e.status==="EXPIRED").length);

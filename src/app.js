@@ -3,9 +3,10 @@ import {evaluate} from "./evaluation.js";
 import {confirm,compareV2} from "./confirmation.js";
 import {stageEvents} from "./stages.js";
 import {eventsBetween,alertText} from "./alerts.js";
+import {followConfirmed} from "./follow.js";
 const symbols=["BTRUSDT"];
 const $=id=>document.getElementById(id);
-let bars=[],signals=[],evaluation=null,v2=null,comparison=null,stages=null,cursor=0,playing=false,timer=null,source="";
+let bars=[],signals=[],evaluation=null,v2=null,comparison=null,stages=null,follow=null,cursor=0,playing=false,timer=null,source="";
 let alertHistory=[];
 const toastTimers=new Map();
 $("symbol").innerHTML=symbols.map(s=>'<option>'+s+'</option>').join("");
@@ -22,7 +23,7 @@ $("load").onclick=async()=>{
     if(!response.ok)throw Error("HTTP "+response.status+" при загрузке market.zip");
     const files=await unzip(await response.arrayBuffer());
     const loaded=loadCandles(files);bars=loaded.rows;source=loaded.source;
-    signals=detect(bars);evaluation=evaluate(bars,signals);v2=confirm(bars,signals);comparison=compareV2(v2,evaluation);stages=stageEvents(bars,signals);
+    signals=detect(bars);evaluation=evaluate(bars,signals);v2=confirm(bars,signals);comparison=compareV2(v2,evaluation);stages=stageEvents(bars,signals);follow=followConfirmed(bars,signals,stages);
     cursor=Math.min(Math.max(0,50*15),bars.length-1);
     $("seek").max=bars.length-1;$("seek").min=0;$("seek").disabled=false;
     $("play").disabled=false;$("reset").disabled=false;
@@ -39,7 +40,7 @@ function start(){
     const old=cursor;
     cursor=Math.min(bars.length-1,cursor+Number($("speed").value));
     render();
-    for(const event of eventsBetween(stages.events,old,cursor))notify(event);
+    for(const event of eventsBetween([...stages.events,...follow.events].sort((a,b)=>a.index-b.index),old,cursor))notify(event);
     if(cursor===bars.length-1)stop();
   },250);
 }
@@ -104,6 +105,7 @@ function render(){
   $("clock").textContent=date(b.t);$("price").textContent=fmt(b.c);$("ma").textContent=fmt(s.ma);
   $("distance").textContent=pct(s.dist);$("phase").textContent=stages.events.findLast(e=>e.index===cursor)?.type??s.phase;$("score").textContent=s.ma?String(s.score):"—";
   $("seek").value=cursor;
+  renderFollow();
   const start=Math.max(0,cursor-240);
   const visible=bars.slice(start,cursor+1);
   const analysis=signals.slice(start,cursor+1);
@@ -111,9 +113,9 @@ function render(){
     .map(e=>({position:e.index-start,type:e.type}));
   draw($("chart"),visible.map(b=>b.c),analysis.map(s=>s.ma),marks);
   draw($("volume"),visible.map(b=>b.v),[],[],true);
-  const events=stages.events.filter(e=>e.index<=cursor).slice().reverse();
+  const events=[...stages.events,...follow.events].filter(e=>e.index<=cursor).sort((a,b)=>b.index-a.index);
   $("events").innerHTML=events.length?'<table><thead><tr><th>UTC</th><th>Событие</th><th>Цена</th><th>Задержка</th></tr></thead><tbody>'+
-    events.slice(0,60).map(e=>'<tr><td>'+date(Date.parse(e.time)).slice(5)+'</td><td class="'+(e.type==="CONFIRMED"?"green":"amber")+'">'+e.type+'</td><td>'+fmt(e.price)+'</td><td>'+(e.delayMinutes??"—")+'</td></tr>').join("")+'</tbody></table>':"<p>Пока событий нет.</p>";
+    events.slice(0,60).map(e=>'<tr><td>'+date(Date.parse(e.time)).slice(5)+'</td><td class="'+(e.type==="CONFIRMED"?"green":e.type==="FOLLOW"?"blue":"amber")+'">'+(e.type==="FOLLOW"?e.label:e.type)+'</td><td>'+fmt(e.price)+'</td><td>'+(e.delayMinutes??"—")+'</td></tr>').join("")+'</tbody></table>':"<p>Пока событий нет.</p>";
   $("details").textContent="Свеча "+(cursor+1)+"/"+bars.length+" · ΔMA за 3 свечи: "+pct(s.velocity)+" · изменение цены за 3m: "+pct(s.gain)+" · объём/средний: "+s.volRatio.toFixed(2)+"× · первых сигналов: "+events.length+" · источник: "+source;
 }
 
@@ -203,4 +205,17 @@ function notify(event){
   try{new Notification(msg.title,{body:msg.body,tag:"rocket-radar-"+event.index+"-"+event.type});}
   catch(error){console.warn("System notification was not shown",error);}
  }
+}
+
+function renderFollow(){
+ const point=follow?.points[cursor];
+ const values={
+   "follow-status":point?.label??"—",
+   "follow-efficiency":point?.efficiency==null?"—":point.efficiency.toFixed(2),
+   "follow-retention":point?.retention==null?"—":(point.retention*100).toFixed(1)+"%",
+   "follow-separation":point?.maSpeed==null?"—":(point.maSpeed>=0?"+":"")+point.maSpeed.toFixed(2)+" pp / 3m",
+   "follow-change":point?.netGain==null?"—":pct(point.netGain),
+   "follow-elapsed":point?.elapsed==null?"—":point.elapsed+"m"
+ };
+ for(const [key,value] of Object.entries(values))$(key).textContent=value;
 }
